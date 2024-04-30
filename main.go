@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"errors"
 	"flag"
 	"fmt"
@@ -12,31 +13,77 @@ import (
 	"net/http"
 	"os/exec"
 	"os/user"
+	"strings"
 	"time"
 )
 
+var port int
+
+var cidr string
+
+var bind string
+
+var autoRoute bool
+
+var autoForwarding bool
+
+type AuthConfig struct {
+	username string
+	password string
+}
+
 func main() {
+
+	authConfig := AuthConfig{}
+
 	flag.IntVar(&port, "port", 33300, "server port")
 	flag.StringVar(&cidr, "cidr", "", "ipv6 cidr")
+	flag.StringVar(&authConfig.username, "username", "", "Basic auth username")
+	flag.StringVar(&authConfig.password, "password", "", "Basic auth password")
+	flag.StringVar(&bind, "bind", "127.0.0.1", "Bind address")
+	flag.BoolVar(&autoRoute, "auto-route", true, "Auto add route to local network")
+	flag.BoolVar(&autoForwarding, "auto-forwarding", true, "Auto enable ipv6 forwarding")
 	flag.Parse()
 
 	if cidr == "" {
 		log.Fatal("cidr is required")
 	}
 
-	if isRoot() {
-		setV6Forwarding()
-		addV6Route(cidr)
+	if autoForwarding {
+		if isRoot() {
+			setV6Forwarding()
+		} else {
+			log.Fatal("You must run this program as root")
+		}
+	}
 
-	} else {
-		log.Fatal("You must run this program as root")
+	if autoRoute {
+		if isRoot() {
+			addV6Route(cidr)
+		} else {
+			log.Fatal("You must run this program as root")
+		}
 	}
 
 	proxy := goproxy.NewProxyHttpServer()
 	proxy.Verbose = false
 
+	proxy.OnRequest().DoFunc(
+		func(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
+			if authConfig.username != "" && authConfig.password != "" && !authConfig.checkAuth(req) {
+				return req, goproxy.NewResponse(req, goproxy.ContentTypeText, http.StatusProxyAuthRequired, "Proxy Authentication Required")
+			}
+			return req, nil
+		},
+	)
+
 	proxy.OnRequest().HijackConnect(
 		func(req *http.Request, client net.Conn, ctx *goproxy.ProxyCtx) {
+			if authConfig.username != "" && authConfig.password != "" && !authConfig.checkAuth(req) {
+				client.Write([]byte("HTTP/1.1 407 Proxy Authentication Required\r\nProxy-Authenticate: Basic realm=\"Proxy\"\r\n\r\n"))
+				client.Close()
+				return
+			}
 
 			host := req.URL.Hostname()
 			targetIp, isV6, err := getIPAddress(host)
@@ -130,8 +177,8 @@ func main() {
 		},
 	)
 
-	log.Printf("Starting server on port %d", port)
-	err := http.ListenAndServe(fmt.Sprintf("0.0.0.0:%d", port), proxy)
+	log.Printf("Starting server on  %s:%d", bind, port)
+	err := http.ListenAndServe(fmt.Sprintf("%s:%d", bind, port), proxy)
 
 	if err != nil {
 		log.Fatal(err)
@@ -235,4 +282,29 @@ func isRoot() bool {
 		return false
 	}
 	return currentUser.Uid == "0"
+}
+
+func (a *AuthConfig) checkAuth(req *http.Request) bool {
+	authHeader := req.Header.Get("Proxy-Authorization")
+	if authHeader == "" {
+		return false
+	}
+
+	prefix := "Basic "
+	if !strings.HasPrefix(authHeader, prefix) {
+		return false
+	}
+
+	encoded := strings.TrimPrefix(authHeader, prefix)
+	decoded, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil {
+		return false
+	}
+
+	parts := strings.SplitN(string(decoded), ":", 2)
+	if len(parts) != 2 {
+		return false
+	}
+
+	return parts[0] == a.username && parts[1] == a.password
 }
