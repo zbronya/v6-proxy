@@ -1,4 +1,4 @@
-module v6-proxy-pool
+module github.com/zbronya/v6-proxy-pool
 
 go 1.21
 
