@@ -1,0 +1,48 @@
+name: Go Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.21
+
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Build binaries
+        run: make all
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: binaries
+          path: |
+            app-linux-amd64
+            app-linux-arm64
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: binaries
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            app-linux-amd64
+            app-linux-arm64
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
