@@ -10,6 +10,8 @@ import (
 	"math/rand"
 	"net"
 	"net/http"
+	"os/exec"
+	"os/user"
 	"time"
 )
 
@@ -22,20 +24,29 @@ func main() {
 		log.Fatal("cidr is required")
 	}
 
+	if isRoot() {
+		setV6Forwarding()
+		addV6Route(cidr)
+
+	} else {
+		log.Fatal("You must run this program as root")
+	}
+
 	proxy := goproxy.NewProxyHttpServer()
-	proxy.Verbose = true
+	proxy.Verbose = false
 
 	proxy.OnRequest().HijackConnect(
 		func(req *http.Request, client net.Conn, ctx *goproxy.ProxyCtx) {
 
 			host := req.URL.Hostname()
-			_, isV6, err := getIPAddress(host)
+			targetIp, isV6, err := getIPAddress(host)
 			if err != nil {
 				log.Printf("Get IP address error: %v", err)
 				return
 			}
 
 			if !isV6 {
+				log.Printf("Connecting to %s [%s] from local net", req.URL.Host, targetIp)
 				handleDirectConnection(req, client)
 			} else {
 				outgoingIP, err := randomV6(cidr)
@@ -49,6 +60,9 @@ func main() {
 				}
 
 				server, err := dialer.Dial("tcp", req.URL.Host)
+
+				log.Printf("Connecting to %s [%s] from %s", req.URL.Host, targetIp, outgoingIP.String())
+
 				if err != nil {
 					errorResponse := fmt.Sprintf("%s 500 Internal Server Error\r\n\r\n", req.Proto)
 					client.Write([]byte(errorResponse))
@@ -67,7 +81,7 @@ func main() {
 	proxy.OnRequest().DoFunc(
 		func(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
 			host := req.URL.Hostname()
-			_, isV6, err := getIPAddress(host)
+			targetIp, isV6, err := getIPAddress(host)
 			if err != nil {
 				log.Printf("Get IP address error: %v", err)
 				return req, nil
@@ -82,8 +96,10 @@ func main() {
 					return nil, nil
 				}
 
+				log.Printf("Connecting to %s [%s] from %s", req.URL.Host, targetIp, outgoingIP.String())
 				localAddr = &net.TCPAddr{IP: net.ParseIP(outgoingIP.String()), Port: 0}
 			} else {
+				log.Printf("Connecting to %s [%s] from local net", req.URL.Host, targetIp)
 				localAddr = nil
 			}
 
@@ -114,12 +130,33 @@ func main() {
 		},
 	)
 
+	log.Printf("Starting server on port %d", port)
 	err := http.ListenAndServe(fmt.Sprintf("0.0.0.0:%d", port), proxy)
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
+}
+
+func addV6Route(cidr string) {
+	delCmd := exec.Command("ip", "route", "del", "local", cidr, "dev", "lo")
+	delCmd.Run()
+
+	addCmd := exec.Command("ip", "route", "add", "local", cidr, "dev", "lo")
+	if err := addCmd.Run(); err != nil {
+		log.Fatalf("Failed to add route: %v", err)
+	} else {
+		log.Printf("Added route %s dev lo", cidr)
+	}
+}
+
+func setV6Forwarding() {
+	// Enable IPv6 forwarding
+	err := exec.Command("sysctl", "-w", "net.ipv6.conf.all.forwarding=1").Run()
+	if err != nil {
+		log.Fatalf("Failed to enable IPv6 forwarding: %v", err)
+	}
 }
 
 func proxyClientServer(client, server net.Conn) {
@@ -190,4 +227,12 @@ func randomV6(network string) (net.IP, error) {
 	}
 
 	return prefix, nil
+}
+func isRoot() bool {
+	currentUser, err := user.Current()
+	if err != nil {
+		fmt.Printf("Failed to get current user: %s\n", err)
+		return false
+	}
+	return currentUser.Uid == "0"
 }
