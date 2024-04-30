@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	flag.IntVar(&port, "port", 8787, "server port")
+	flag.IntVar(&port, "port", 33300, "server port")
 	flag.StringVar(&cidr, "cidr", "", "ipv6 cidr")
 	flag.Parse()
 
