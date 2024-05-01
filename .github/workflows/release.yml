@@ -26,8 +26,8 @@ jobs:
         with:
           name: binaries
           path: |
-            v6-proxy-pool-linux-amd64
-            v6-proxy-pool-linux-arm64
+            v6-proxy-linux-amd64
+            v6-proxy-linux-arm64
 
   release:
     needs: build
@@ -44,7 +44,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            v6-proxy-pool-linux-amd64
-            v6-proxy-pool-linux-arm64
+            v6-proxy-linux-amd64
+            v6-proxy-linux-arm64
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

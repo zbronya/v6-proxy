@@ -1,6 +1,6 @@
 .PHONY: all build_linux_amd64 build_linux_arm
 
-BINARY_NAME=v6-proxy-pool
+BINARY_NAME=v6-proxy
 
 all: build_linux_amd64 build_linux_arm
 

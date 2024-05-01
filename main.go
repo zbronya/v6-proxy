@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/zbronya/v6-proxy-pool/config"
-	"github.com/zbronya/v6-proxy-pool/proxy"
-	"github.com/zbronya/v6-proxy-pool/sysutils"
+	"github.com/zbronya/v6-proxy/config"
+	"github.com/zbronya/v6-proxy/proxy"
+	"github.com/zbronya/v6-proxy/sysutils"
 	"log"
 	"net/http"
 )
