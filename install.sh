@@ -35,3 +35,5 @@ curl -sOL "https://github.com/zbronya/v6-proxy/releases/download/${latest_releas
 chmod +x "v6-proxy-${os}-${arch}"
 
 sudo mv "v6-proxy-${os}-${arch}" /usr/local/bin/v6-proxy
+
+echo "v6-proxy ${latest_release} has been installed to /usr/local/bin/v6-proxy"
