@@ -46,6 +46,9 @@ func NewProxyServer(cfg config.Config) *goproxy.ProxyHttpServer {
 				return
 			}
 
+			okResponse := fmt.Sprintf("%s 200 OK\r\n\r\n", req.Proto)
+			client.Write([]byte(okResponse))
+
 			if !isV6 {
 				log.Printf("Connecting to %s [%s] from local net", req.URL.Host, targetIp)
 				handleDirectConnection(req, client)
@@ -70,9 +73,6 @@ func NewProxyServer(cfg config.Config) *goproxy.ProxyHttpServer {
 					client.Close()
 					return
 				}
-
-				okResponse := fmt.Sprintf("%s 200 OK\r\n\r\n", req.Proto)
-				client.Write([]byte(okResponse))
 
 				proxyClientServer(client, server)
 			}
@@ -180,7 +180,5 @@ func handleDirectConnection(req *http.Request, client net.Conn) {
 		client.Close()
 		return
 	}
-	okResponse := fmt.Sprintf("%s 200 OK\r\n\r\n", req.Proto)
-	client.Write([]byte(okResponse))
 	proxyClientServer(client, server)
 }
