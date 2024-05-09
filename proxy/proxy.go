@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"github.com/elazarl/goproxy"
 	"github.com/zbronya/v6-proxy/config"
@@ -11,6 +12,7 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"time"
 )
 
 func NewProxyServer(cfg config.Config) *goproxy.ProxyHttpServer {
@@ -58,18 +60,42 @@ func NewProxyServer(cfg config.Config) *goproxy.ProxyHttpServer {
 
 				dialer := &net.Dialer{
 					LocalAddr: &net.TCPAddr{IP: net.ParseIP(outgoingIP.String()), Port: 0},
+					Timeout:   30 * time.Second,
 				}
 
+				start := time.Now()
 				server, err := dialer.Dial("tcp", req.URL.Host)
-
-				log.Printf("Connecting to %s [%s] from %s", req.URL.Host, targetIp, outgoingIP.String())
+				elapsed := time.Since(start)
 
 				if err != nil {
+					log.Printf("Failed to connect to %s/%s from %s after %s: %v", req.URL.Host, req.URL.Scheme, outgoingIP.String(), elapsed, err)
+
+					var opErr *net.OpError
+					if errors.As(err, &opErr) {
+						if opErr.Timeout() {
+							log.Printf("Connection to %s timed out after %s", req.URL.Host, elapsed)
+						} else {
+							log.Printf("Failed to connect to %s due to: %v", req.URL.Host, opErr.Err)
+						}
+
+						if opErr.Temporary() {
+							log.Println("Temporary error, may retry")
+						} else {
+							log.Println("Permanent error, should not retry")
+						}
+
+						if _, ok := opErr.Err.(net.UnknownNetworkError); ok {
+							log.Printf("Unknown network error: %v", opErr.Err)
+						}
+					}
+
 					errorResponse := fmt.Sprintf("%s 500 Internal Server Error\r\n\r\n", req.Proto)
 					client.Write([]byte(errorResponse))
 					client.Close()
 					return
 				}
+
+				log.Printf("Connecting to %s [%s] from %s", req.URL.Host, targetIp, outgoingIP.String())
 
 				okResponse := fmt.Sprintf("%s 200 OK\r\n\r\n", req.Proto)
 				client.Write([]byte(okResponse))
