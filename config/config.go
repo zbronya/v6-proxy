@@ -5,12 +5,13 @@ import (
 )
 
 type Config struct {
-	Port           int
-	CIDR           string
-	Bind           string
-	AutoRoute      bool
-	AutoForwarding bool
-	AuthConfig     AuthConfig
+	Port              int
+	CIDR              string
+	Bind              string
+	AutoRoute         bool
+	AutoForwarding    bool
+	AutoIpNoLocalBind bool
+	AuthConfig        AuthConfig
 }
 
 type AuthConfig struct {
@@ -27,6 +28,7 @@ func ParseFlags() Config {
 	flag.StringVar(&cfg.Bind, "bind", "127.0.0.1", "Bind address")
 	flag.BoolVar(&cfg.AutoRoute, "auto-route", true, "Auto add route to local network")
 	flag.BoolVar(&cfg.AutoForwarding, "auto-forwarding", true, "Auto enable ipv6 forwarding")
+	flag.BoolVar(&cfg.AutoIpNoLocalBind, "auto-ip-nonlocal-bind", true, "Auto enable ipv6 non local bind")
 	flag.Parse()
 	return cfg
 }

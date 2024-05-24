@@ -35,6 +35,18 @@ func SetV6Forwarding() {
 	}
 }
 
+func SetIpNonLocalBind() {
+	if !isRoot() {
+		log.Fatal("You must run this program as root")
+	}
+
+	err := exec.Command("sysctl", "-w", "net.ipv6.ip_nonlocal_bind=1").Run()
+	if err != nil {
+		log.Fatalf("Failed to enable IPv6 non local bind: %v", err)
+	}
+
+}
+
 func isRoot() bool {
 	currentUser, err := user.Current()
 	if err != nil {

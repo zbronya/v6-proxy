@@ -23,6 +23,10 @@ func main() {
 		sysutils.AddV6Route(cfg.CIDR)
 	}
 
+	if cfg.AutoIpNoLocalBind {
+		sysutils.SetIpNonLocalBind()
+	}
+
 	p := proxy.NewProxyServer(cfg)
 
 	log.Printf("Starting server on  %s:%d", cfg.Bind, cfg.Port)

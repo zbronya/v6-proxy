@@ -28,6 +28,7 @@ while true; do curl -x http://127.0.0.1:33300 -s https://api.ip.sb/ip -A Mozilla
 - `--bind` proxy server bind address, default 127.0.0.1
 - `--auto-route` auto add route to the system, default true **need root permission**
 - `--auto-forwarding` auto add forwarding to the system, default true **need root permission**
+- `--auto-ip-nonlocal-bind` auto add ip-nonlocal-bind to the system, default true **need root permission**
 
 ## what's next
 - [使用TunnelBroker提供的免费/48的ipv6解决chat-to-api的429问题](https://bronya.io/chat-to-api-solving-429/)
