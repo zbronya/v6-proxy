@@ -29,7 +29,7 @@ func main() {
 
 	p := proxy.NewProxyServer(cfg)
 
-	fmt.Printf("Starting server on  %s:%d", cfg.Bind, cfg.Port)
+	fmt.Println("Starting server on  %s:%d", cfg.Bind, cfg.Port)
 	err := http.ListenAndServe(fmt.Sprintf("%s:%d", cfg.Bind, cfg.Port), p)
 
 	if err != nil {

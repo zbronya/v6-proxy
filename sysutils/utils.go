@@ -19,7 +19,7 @@ func AddV6Route(cidr string) {
 	if err := addCmd.Run(); err != nil {
 		log.Fatalf("Failed to add route: %v", err)
 	} else {
-		fmt.Printf("Added route %s dev lo", cidr)
+		fmt.Println("Added route %s dev lo", cidr)
 	}
 
 }
@@ -50,7 +50,7 @@ func SetIpNonLocalBind() {
 func isRoot() bool {
 	currentUser, err := user.Current()
 	if err != nil {
-		fmt.Printf("Failed to get current user: %s\n", err)
+		fmt.Println("Failed to get current user: %s\n", err)
 		return false
 	}
 	return currentUser.Uid == "0"
