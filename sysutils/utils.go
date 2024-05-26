@@ -19,7 +19,7 @@ func AddV6Route(cidr string) {
 	if err := addCmd.Run(); err != nil {
 		log.Fatalf("Failed to add route: %v", err)
 	} else {
-		log.Printf("Added route %s dev lo", cidr)
+		fmt.Printf("Added route %s dev lo", cidr)
 	}
 
 }
