@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"github.com/elazarl/goproxy"
 	"github.com/zbronya/v6-proxy/config"
+	"github.com/zbronya/v6-proxy/log"
 	"github.com/zbronya/v6-proxy/netutils"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"strings"
@@ -43,17 +43,17 @@ func NewProxyServer(cfg config.Config) *goproxy.ProxyHttpServer {
 			host := req.URL.Hostname()
 			targetIp, isV6, err := netutils.GetIPAddress(host)
 			if err != nil {
-				log.Printf("Get IP address error: %v", err)
+				log.GetLogger().Warn("Get IP address error: %v", err)
 				return
 			}
 
 			if !isV6 {
-				fmt.Println("Connecting to %s [%s] from local net", req.URL.Host, targetIp)
+				log.GetLogger().Info("Connecting to %s [%s] from local net", req.URL.Host, targetIp)
 				handleDirectConnection(req, client)
 			} else {
 				outgoingIP, err := netutils.RandomV6(cfg.CIDR)
 				if err != nil {
-					log.Printf("Generate random IPv6 error: %v", err)
+					log.GetLogger().Warn("Generate random IPv6 error: %v", err)
 					return
 				}
 
@@ -67,14 +67,14 @@ func NewProxyServer(cfg config.Config) *goproxy.ProxyHttpServer {
 				elapsed := time.Since(start)
 
 				if err != nil {
-					log.Printf("Failed to connect to %s/%s from %s after %s: %v", req.URL.Host, req.URL.Scheme, outgoingIP.String(), elapsed, err)
+					log.GetLogger().Warn("Failed to connect to %s/%s from %s after %s: %v", req.URL.Host, req.URL.Scheme, outgoingIP.String(), elapsed, err)
 					errorResponse := fmt.Sprintf("%s 500 Internal Server Error\r\n\r\n", req.Proto)
 					client.Write([]byte(errorResponse))
 					client.Close()
 					return
 				}
 
-				fmt.Println("Connecting to %s [%s] from %s", req.URL.Host, targetIp, outgoingIP.String())
+				log.GetLogger().Info("Connecting to %s [%s] from %s", req.URL.Host, targetIp, outgoingIP.String())
 
 				okResponse := fmt.Sprintf("%s 200 OK\r\n\r\n", req.Proto)
 				client.Write([]byte(okResponse))
@@ -89,7 +89,7 @@ func NewProxyServer(cfg config.Config) *goproxy.ProxyHttpServer {
 			host := req.URL.Hostname()
 			targetIp, isV6, err := netutils.GetIPAddress(host)
 			if err != nil {
-				log.Printf("Get IP address error: %v", err)
+				log.GetLogger().Warn("Get IP address error: %v", err)
 				return req, nil
 			}
 
@@ -98,14 +98,14 @@ func NewProxyServer(cfg config.Config) *goproxy.ProxyHttpServer {
 			if isV6 {
 				outgoingIP, err := netutils.RandomV6(cfg.CIDR)
 				if err != nil {
-					log.Printf("Generate random IPv6 error: %v", err)
+					log.GetLogger().Warn("Generate random IPv6 error: %v", err)
 					return nil, nil
 				}
 
-				fmt.Println("Connecting to %s [%s] from %s", req.URL.Host, targetIp, outgoingIP.String())
+				log.GetLogger().Info("Connecting to %s [%s] from %s", req.URL.Host, targetIp, outgoingIP.String())
 				localAddr = &net.TCPAddr{IP: net.ParseIP(outgoingIP.String()), Port: 0}
 			} else {
-				fmt.Println("Connecting to %s [%s] from local net", req.URL.Host, targetIp)
+				log.GetLogger().Info("Connecting to %s [%s] from local net", req.URL.Host, targetIp)
 				localAddr = nil
 			}
 
@@ -115,7 +115,7 @@ func NewProxyServer(cfg config.Config) *goproxy.ProxyHttpServer {
 
 			newReq, err := http.NewRequest(req.Method, req.URL.String(), req.Body)
 			if err != nil {
-				log.Printf("New request error: %v", err)
+				log.GetLogger().Warn("New request error: %v", err)
 				return req, nil
 			}
 
@@ -129,7 +129,7 @@ func NewProxyServer(cfg config.Config) *goproxy.ProxyHttpServer {
 
 			resp, err := client.Do(newReq)
 			if err != nil {
-				log.Printf("[http] Send request error: %v", err)
+				log.GetLogger().Warn("[http] Send request error: %v", err)
 				return req, nil
 			}
 			return req, resp
