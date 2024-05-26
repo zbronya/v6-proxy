@@ -7,9 +7,11 @@ import (
 	"github.com/zbronya/v6-proxy/sysutils"
 	"log"
 	"net/http"
+	"os"
 )
 
 func main() {
+	log.SetOutput(os.Stdout)
 	cfg := config.ParseFlags()
 	if cfg.CIDR == "" {
 		log.Fatal("cidr is required")
