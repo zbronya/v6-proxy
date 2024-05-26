@@ -48,7 +48,7 @@ func NewProxyServer(cfg config.Config) *goproxy.ProxyHttpServer {
 			}
 
 			if !isV6 {
-				fmt.Println("Connecting to %s [%s] from local net", req.URL.Host, targetIp)
+				fmt.Printf("Connecting to %s [%s] from local net", req.URL.Host, targetIp)
 				handleDirectConnection(req, client)
 			} else {
 				outgoingIP, err := netutils.RandomV6(cfg.CIDR)
@@ -74,7 +74,7 @@ func NewProxyServer(cfg config.Config) *goproxy.ProxyHttpServer {
 					return
 				}
 
-				fmt.Println("Connecting to %s [%s] from %s", req.URL.Host, targetIp, outgoingIP.String())
+				fmt.Printf("Connecting to %s [%s] from %s", req.URL.Host, targetIp, outgoingIP.String())
 
 				okResponse := fmt.Sprintf("%s 200 OK\r\n\r\n", req.Proto)
 				client.Write([]byte(okResponse))
@@ -102,10 +102,10 @@ func NewProxyServer(cfg config.Config) *goproxy.ProxyHttpServer {
 					return nil, nil
 				}
 
-				fmt.Println("Connecting to %s [%s] from %s", req.URL.Host, targetIp, outgoingIP.String())
+				fmt.Printf("Connecting to %s [%s] from %s", req.URL.Host, targetIp, outgoingIP.String())
 				localAddr = &net.TCPAddr{IP: net.ParseIP(outgoingIP.String()), Port: 0}
 			} else {
-				fmt.Println("Connecting to %s [%s] from local net", req.URL.Host, targetIp)
+				fmt.Printf("Connecting to %s [%s] from local net", req.URL.Host, targetIp)
 				localAddr = nil
 			}
 
