@@ -1,7 +1,7 @@
 # v6-proxy
 A random IPv6 proxy service based on Go
 
-## Installation or Update
+## Installation
 
 ```bash
 curl -sSL https://github.com/zbronya/v6-proxy/raw/master/install.sh | sudo bash
